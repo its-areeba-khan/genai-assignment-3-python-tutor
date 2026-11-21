@@ -12,37 +12,45 @@ st.set_page_config(
 import os
 import zipfile
 
+
 @st.cache_resource
 def load_model():
+    import os
+    import zipfile
 
     zip_path = "Python_Tutor_Final.zip"
     extract_path = "/tmp/python_tutor_model"
 
-    # Extract trained model
-    if not os.path.exists(extract_path):
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(extract_path)
+    os.makedirs(extract_path, exist_ok=True)
 
-    # Find the actual model directory
+    # Extract model files
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
+        zip_ref.extractall(extract_path)
+
+    # Locate model configuration
     model_path = None
 
     for root, dirs, files in os.walk(extract_path):
-        if "config.json" in files and "vocab.json" in files:
+        if "config.json" in files and "tokenizer.json" in files:
             model_path = root
             break
 
     if model_path is None:
         raise FileNotFoundError(
-            "Model files not found. Check Python_Tutor_Final.zip"
+            "Could not locate config.json and tokenizer.json"
         )
 
-    # Load tokenizer and model
+    # Load tokenizer using tokenizer.json
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
-        use_fast=False
+        use_fast=True
     )
 
-    model = AutoModelForCausalLM.from_pretrained(model_path)
+    # Load fine-tuned model
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path
+    )
+
     model.eval()
 
     return tokenizer, model
