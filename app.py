@@ -9,11 +9,42 @@ st.set_page_config(
     layout="centered"
 )
 
+import os
+import zipfile
+
 @st.cache_resource
 def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("./")
-    model = AutoModelForCausalLM.from_pretrained("./")
+
+    zip_path = "Python_Tutor_Final.zip"
+    extract_path = "/tmp/python_tutor_model"
+
+    # Extract trained model
+    if not os.path.exists(extract_path):
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_path)
+
+    # Find the actual model directory
+    model_path = None
+
+    for root, dirs, files in os.walk(extract_path):
+        if "config.json" in files and "vocab.json" in files:
+            model_path = root
+            break
+
+    if model_path is None:
+        raise FileNotFoundError(
+            "Model files not found. Check Python_Tutor_Final.zip"
+        )
+
+    # Load tokenizer and model
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        use_fast=False
+    )
+
+    model = AutoModelForCausalLM.from_pretrained(model_path)
     model.eval()
+
     return tokenizer, model
 
 st.title("🐍 Python Tutor AI")
